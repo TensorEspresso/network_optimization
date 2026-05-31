@@ -76,6 +76,7 @@ def main() -> None:
     # Build output
     output = {
         "score": round(result.score, 2),
+        "access_score": round(result.access_score, 2),
         "network_entities": sorted(result.network_entities),
         "num_entities": len(result.network_entities),
         "num_providers": len(result.network),

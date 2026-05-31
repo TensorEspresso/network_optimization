@@ -3,7 +3,7 @@
 from .config import OptimizerConfig
 from .data import load_all, load_members, load_pool, load_thresholds, load_weights
 from .ranking import CandidateRanker
-from .scoring import adequacy_score, compute_coverage, weighted_objective
+from .scoring import access_score, compute_coverage, weighted_objective
 from .search import NetworkOptimizer, SearchResult
 
 __all__ = [
@@ -11,7 +11,7 @@ __all__ = [
     "OptimizerConfig",
     "NetworkOptimizer",
     "SearchResult",
-    "adequacy_score",
+    "access_score",
     "compute_coverage",
     "weighted_objective",
     "load_all",

@@ -13,19 +13,19 @@ Steepest-ascent hill climbing, pure constructive (additions only).
 
 Each round:
 1. Generate all possible additions (one per remaining group in pool)
-2. For each, create the hypothetical network state and compute adequacy score
+2. For each, create the hypothetical network state and compute access score
 3. Accept the addition with highest score if it improves over current
 4. Remove accepted group from pool
 5. Stop when no addition improves or pool is exhausted
 
-### Adequacy Score
+### access Score
 
 Per county/specialty:
 ```
-adequacy_index = pct_with_access * min(1, servicing_providers / min_providers)
+access_index = pct_with_access * min(1, servicing_providers / min_providers)
 ```
 
-Final score = mean of all county/specialty adequacy indices.
+Final score = mean of all county/specialty access indices.
 
 `pct_with_access` = members who have ≥ `provider_count` providers within `distance_req` miles, divided by total members in that county.
 
@@ -34,7 +34,7 @@ Final score = mean of all county/specialty adequacy indices.
 - **Pool:** Candidate providers with `group_id` (contracting entity). Adding a group adds ALL its providers.
 - **Network:** Currently contracted providers. Can start empty or pre-populated.
 - **Members:** Beneficiaries with lat/lon/county.
-- **Adequacy requirements:** Per county/specialty rules: `provider_count`, `distance_req`, `min_access_pct`, `min_providers`.
+- **access requirements:** Per county/specialty rules: `provider_count`, `distance_req`, `min_access_pct`, `min_providers`.
 
 ### Synthetic test data
 
@@ -52,7 +52,7 @@ Final score = mean of all county/specialty adequacy indices.
 
 - 10 rounds to convergence, ~0.8s/round, 8.0s total
 - 9 groups added, 64 providers in final network
-- Final adequacy: **0.9736**
+- Final access: **0.9736**
 - Diminishing returns: first 3 rounds add 0.65, next 6 add 0.32, last 1 adds 0.002
 - Rounds 10-15 add groups with **zero gain** — algorithm should have stopped at round 9
 
@@ -87,7 +87,7 @@ This means the `>` comparison is passing due to floating point — the `argmax` 
 
 4. **Row-wise haversine.** `.apply(lambda row: haversine(...))` — O(n) Python loop. `sklearn.metrics.pairwise.haversine_distances` is imported but never used.
 
-5. **No incremental evaluation.** Each successor recalculates adequacy from scratch (full merge → groupby → merge pipeline). With 15 groups and 5 adequacy rules this is fine. With 500 groups it's 500 full adequacy calculations per round.
+5. **No incremental evaluation.** Each successor recalculates access from scratch (full merge → groupby → merge pipeline). With 15 groups and 5 access rules this is fine. With 500 groups it's 500 full access calculations per round.
 
 6. **Monolithic class.** 244 lines mixing data loading, distance computation, scoring, and search logic.
 
@@ -118,7 +118,7 @@ This means the `>` comparison is passing due to floating point — the `argmax` 
 | Empty network, 15 groups | 10 | 0.8s | 8.0s | 0.9736 |
 | Existing network (15 groups) | 3 | 1.3s | 4.2s | 1.0000 |
 
-Bottleneck: adequacy calculation per successor. Each call does 4+ DataFrame merges and groupbys. With N groups, each round performs N adequacy calculations.
+Bottleneck: access calculation per successor. Each call does 4+ DataFrame merges and groupbys. With N groups, each round performs N access calculations.
 
 ---
 
@@ -132,4 +132,4 @@ Bottleneck: adequacy calculation per successor. Each call does 4+ DataFrame merg
 
 4. **Python version:** Current `__pycache__` shows 3.7 and 3.9. Agent uses 3.12. Target 3.10+?
 
-5. **Multi-region:** Adequacy requirements already have a `county` column. Current synthetic data is single-county. Should the refactored version support multi-county out of the box?
+5. **Multi-region:** access requirements already have a `county` column. Current synthetic data is single-county. Should the refactored version support multi-county out of the box?

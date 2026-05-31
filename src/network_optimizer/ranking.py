@@ -151,8 +151,8 @@ class CandidateRanker:
                 norm = normalize_to_100(col_mean, self.pool_stats[col]["min"], self.pool_stats[col]["max"])
                 metric_score += w * norm
 
-        adequacy_w = 1.0 - total_weight
-        return adequacy_w * cov_pct + metric_score
+        access_w = 1.0 - total_weight
+        return access_w * cov_pct + metric_score
 
     def get_relevant_candidates(
         self,

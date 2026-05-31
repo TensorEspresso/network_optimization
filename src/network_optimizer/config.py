@@ -61,7 +61,7 @@ class OptimizerConfig:
             if any(v < 0 or v > 1 for v in self.metric_weights.values()):
                 raise ValueError("metric_weights values must be in [0, 1]")
             if sum(self.metric_weights.values()) >= 1.0:
-                raise ValueError("sum of metric_weights must be < 1.0 (adequacy gets remainder)")
+                raise ValueError("sum of metric_weights must be < 1.0 (access gets remainder)")
 
     @classmethod
     def quick(cls) -> OptimizerConfig:

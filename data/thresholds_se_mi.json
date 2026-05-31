@@ -1,0 +1,82 @@
+{
+  "mi": {
+    "wayne": {
+      "family practice": 10.0,
+      "internal medicine": 10.0,
+      "general practice": 15.0,
+      "cardiology": 20.0,
+      "orthopedic surgery": 20.0,
+      "psychiatry": 15.0,
+      "gynecology, ob/gyn": 20.0,
+      "neurology": 25.0,
+      "dermatology": 20.0,
+      "pulmonology": 25.0,
+      "endocrinology": 25.0
+    },
+    "oakland": {
+      "family practice": 10.0,
+      "internal medicine": 10.0,
+      "general practice": 15.0,
+      "cardiology": 20.0,
+      "orthopedic surgery": 20.0,
+      "psychiatry": 15.0,
+      "gynecology, ob/gyn": 20.0,
+      "neurology": 25.0,
+      "dermatology": 20.0,
+      "pulmonology": 25.0,
+      "endocrinology": 25.0
+    },
+    "macomb": {
+      "family practice": 10.0,
+      "internal medicine": 10.0,
+      "general practice": 15.0,
+      "cardiology": 20.0,
+      "orthopedic surgery": 20.0,
+      "psychiatry": 15.0,
+      "gynecology, ob/gyn": 20.0,
+      "neurology": 25.0,
+      "dermatology": 20.0,
+      "pulmonology": 25.0,
+      "endocrinology": 25.0
+    },
+    "washtenaw": {
+      "family practice": 10.0,
+      "internal medicine": 10.0,
+      "general practice": 15.0,
+      "cardiology": 20.0,
+      "orthopedic surgery": 20.0,
+      "psychiatry": 15.0,
+      "gynecology, ob/gyn": 20.0,
+      "neurology": 25.0,
+      "dermatology": 20.0,
+      "pulmonology": 25.0,
+      "endocrinology": 25.0
+    },
+    "monroe": {
+      "family practice": 10.0,
+      "internal medicine": 10.0,
+      "general practice": 15.0,
+      "cardiology": 20.0,
+      "orthopedic surgery": 20.0,
+      "psychiatry": 15.0,
+      "gynecology, ob/gyn": 20.0,
+      "neurology": 25.0,
+      "dermatology": 20.0,
+      "pulmonology": 25.0,
+      "endocrinology": 25.0
+    },
+    "livingston": {
+      "family practice": 10.0,
+      "internal medicine": 10.0,
+      "general practice": 15.0,
+      "cardiology": 20.0,
+      "orthopedic surgery": 20.0,
+      "psychiatry": 15.0,
+      "gynecology, ob/gyn": 20.0,
+      "neurology": 25.0,
+      "dermatology": 20.0,
+      "pulmonology": 25.0,
+      "endocrinology": 25.0
+    }
+  }
+}

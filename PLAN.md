@@ -10,7 +10,7 @@
 
 ### Completed
 - [x] Phase 2: Project scaffolding (pyproject.toml, package structure, AGENTS.md, README)
-- [x] Phase 3: Module extraction (config, data, distance, adequacy, search, main)
+- [x] Phase 3: Module extraction (config, data, distance, access, search, main)
 - [x] Data schema refactored to match agent project (entity-based, JSON thresholds)
 - [x] Synthetic data generator (`scripts/generate_data.py`)
 - [x] Lint clean (ruff), Python 3.9 compatible
@@ -105,7 +105,7 @@ network_optimization/
 │   ├── config.py                # OptimizerConfig dataclass + validation
 │   ├── data.py                  # Load pool/members/thresholds, validate columns
 │   ├── distance.py              # BallTree coverage queries
-│   ├── adequacy.py              # Score = mean coverage %
+│   ├── access.py              # Score = mean coverage %
 │   ├── search.py                # Two-phase local search
 │   └── main.py                  # CLI entry point
 ├── tests/                       # [TODO] pytest suite
@@ -134,7 +134,7 @@ network_optimization/
 1. `conftest.py` — Small/large synthetic fixtures
 2. `test_data.py` — Column validation, coordinate normalization
 3. `test_distance.py` — BallTree coverage correctness
-4. `test_adequacy.py` — Score = mean coverage %, edge cases
+4. `test_access.py` — Score = mean coverage %, edge cases
 5. `test_search.py` — Phase 1 additions, Phase 2 swaps, convergence
 6. `test_main.py` — CLI args, JSON output, error handling
 
@@ -159,7 +159,7 @@ network_optimization/
 ### Move types: two-phase search (construct then refine)
 **Decision:** Additions in phase 1, swaps in phase 2. No standalone removals.
 
-**Rationale:** With a pure adequacy objective (no size penalty), the greedy algorithm will never choose a removal — removing an entity always reduces coverage. Swaps alone also won't fire at the addition local optimum.
+**Rationale:** With a pure access objective (no size penalty), the greedy algorithm will never choose a removal — removing an entity always reduces coverage. Swaps alone also won't fire at the addition local optimum.
 
 Two-phase approach:
 - **Phase 1 (construct):** Greedy additions until convergence. Same behavior as original code.
@@ -168,7 +168,7 @@ Two-phase approach:
 No size penalty λ to tune. Each phase has a clear stopping criterion.
 
 **Search space:**
-- Phase 1: N candidates per round, ≤N rounds → O(N) adequacy evaluations
+- Phase 1: N candidates per round, ≤N rounds → O(N) access evaluations
 - Phase 2: K × (N-K) swap candidates per round (K = entities in network, N-K = entities in pool). For 15/35 split: 525 evaluations/round.
 
 ### BallTree for distance computation

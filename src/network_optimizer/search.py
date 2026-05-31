@@ -14,7 +14,7 @@ import pandas as pd
 
 from .config import OptimizerConfig
 from .ranking import CandidateRanker
-from .scoring import compute_coverage, weighted_objective
+from .scoring import access_score, compute_coverage, weighted_objective
 
 
 def _score_candidate(
@@ -47,6 +47,7 @@ class SearchResult:
     """Result from the optimization run."""
     network: pd.DataFrame
     score: float
+    access_score: float = 0.0
     phases: list[dict] = field(default_factory=list)
     elapsed: float = 0.0
     entities_added: list[str] = field(default_factory=list)
@@ -121,6 +122,10 @@ class NetworkOptimizer:
         """Compute coverage results for current network."""
         return compute_coverage(self.members, self.thresholds, self._get_network_df())
 
+    def _access(self) -> float:
+        """Compute access score for current network."""
+        return access_score(self.members, self.thresholds, self._get_network_df())
+
     def _add_entity(self, entity: str) -> None:
         """Add an entity to the network."""
         self.network_entities.add(entity.lower())
@@ -147,7 +152,8 @@ class NetworkOptimizer:
         no_improve_count = 0
         start_time = time.time()
         initial_score = self._score()
-        self._log(f"  Initial score: {initial_score:.2f}%")
+        initial_access = self._access()
+        self._log(f"  Initial score: {initial_score:.2f}% (access: {initial_access:.2f}%)")
 
         for round_num in range(self.config.max_rounds):
             # Check time budget
@@ -237,14 +243,17 @@ class NetworkOptimizer:
             no_improve_count = 0
 
             if self.config.verbosity >= 2:
-                self._log(f"  Round {round_num + 1}: Added '{best_entity}' → score {best_score:.2f}% (+{best_improvement:.2f}%)")
+                cur_access = self._access()
+                self._log(f"  Round {round_num + 1}: Added '{best_entity}' → score {best_score:.2f}% (+{best_improvement:.2f}%), access {cur_access:.2f}%")
 
-        self._log(f"  Phase 1 complete: {len(added)} entities added, score {initial_score:.2f}%")
+        final_access = self._access()
+        self._log(f"  Phase 1 complete: {len(added)} entities added, score {initial_score:.2f}% (access: {final_access:.2f}%)")
 
         self.phases.append({
             "phase": 1,
             "entities_added": len(added),
             "final_score": initial_score,
+            "final_access": round(final_access, 2),
             "elapsed": time.time() - start_time,
         })
 
@@ -269,7 +278,8 @@ class NetworkOptimizer:
         no_improve_count = 0
         start_time = time.time()
         initial_score = self._score()
-        self._log(f"  Starting score: {initial_score:.2f}%")
+        initial_access = self._access()
+        self._log(f"  Starting score: {initial_score:.2f}% (access: {initial_access:.2f}%)")
 
         for round_num in range(self.config.max_rounds):
             # Check time budget
@@ -369,14 +379,17 @@ class NetworkOptimizer:
             no_improve_count = 0
 
             if self.config.verbosity >= 2:
-                self._log(f"  Round {round_num + 1}: Swapped '{in_e}' → '{out_e}' → score {best_score:.2f}% (+{best_improvement:.2f}%)")
+                cur_access = self._access()
+                self._log(f"  Round {round_num + 1}: Swapped '{in_e}' → '{out_e}' → score {best_score:.2f}% (+{best_improvement:.2f}%), access {cur_access:.2f}%")
 
-        self._log(f"  Phase 2 complete: {len(swapped)} swaps, score {initial_score:.2f}%")
+        final_access = self._access()
+        self._log(f"  Phase 2 complete: {len(swapped)} swaps, score {initial_score:.2f}% (access: {final_access:.2f}%)")
 
         self.phases.append({
             "phase": 2,
             "swaps": len(swapped),
             "final_score": initial_score,
+            "final_access": round(final_access, 2),
             "elapsed": time.time() - start_time,
         })
 
@@ -397,7 +410,8 @@ class NetworkOptimizer:
         final_score = self._score()
         elapsed = time.time() - overall_start
 
-        self._log(f"\n=== Final Score: {final_score:.2f}% ===")
+        final_access = self._access()
+        self._log(f"\n=== Final Score: {final_score:.2f}% (access: {final_access:.2f}%) ===")
         self._log(f"  Entities in network: {len(self.network_entities)}")
         self._log(f"  Providers in network: {len(final_network)}")
         self._log(f"  Time: {elapsed:.1f}s")
@@ -405,6 +419,7 @@ class NetworkOptimizer:
         return SearchResult(
             network=final_network,
             score=final_score,
+            access_score=final_access,
             elapsed=elapsed,
             entities_added=entities_added,
             entities_swapped=entities_swapped,

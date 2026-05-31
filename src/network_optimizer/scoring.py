@@ -1,6 +1,6 @@
-"""Scoring — coverage computation and adequacy scoring.
+"""Scoring — coverage computation and access scoring.
 
-Provides building blocks for network adequacy evaluation and
+Provides building blocks for network access evaluation and
 supports custom objective functions via composition.
 """
 
@@ -30,20 +30,20 @@ def weighted_objective(
     weights: dict[str, float],
     pool_stats: dict[str, dict[str, float]],
 ) -> float:
-    """Compute weighted score: adequacy + column metrics.
+    """Compute weighted score: access + column metrics.
 
     weights: dict like {"efficiency": 0.3, "effectiveness": 0.2}
-    adequacy weight = 1.0 - sum(weights.values())
+    access weight = 1.0 - sum(weights.values())
     Column metrics normalized to 0-100 using pool min/max from pool_stats.
     """
     if not weights:
-        return adequacy_score(members, thresholds, network)
+        return access_score(members, thresholds, network)
 
     if network.empty:
         return 0.0
 
-    adequacy_w = 1.0 - sum(weights.values())
-    score = adequacy_w * adequacy_score(members, thresholds, network)
+    access_w = 1.0 - sum(weights.values())
+    score = access_w * access_score(members, thresholds, network)
 
     for col, w in weights.items():
         if col in network.columns:
@@ -145,12 +145,12 @@ def compute_coverage(
     return coverage_results
 
 
-def adequacy_score(
+def access_score(
     members: pd.DataFrame,
     thresholds: dict,
     network: pd.DataFrame,
 ) -> float:
-    """Compute overall adequacy score for a given network.
+    """Compute overall access score for a given network.
 
     Score = mean coverage percentage across all (county, specialty) thresholds.
     """

@@ -172,7 +172,7 @@ def load_members(path: str | Path) -> pd.DataFrame:
 
 
 def load_thresholds(path: str | Path) -> dict:
-    """Load adequacy thresholds from JSON file.
+    """Load access thresholds from JSON file.
 
     Expects nested structure matching agent format:
     {

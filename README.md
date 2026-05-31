@@ -2,7 +2,7 @@
 
 Deterministic provider network optimization via two-phase local search.
 
-Given a pool of candidate contracting entities, a member population, and distance-based adequacy thresholds per county/specialty, find the network that maximizes member access to adequate care.
+Given a pool of candidate contracting entities, a member population, and distance-based access thresholds per county/specialty, find the network that maximizes member access to adequate care.
 
 ## Approach
 
@@ -26,13 +26,13 @@ Typically reduces candidates by 80-90% (e.g. 13,842 → 1,658). Filter is lossle
 
 ### Weighted Objectives
 
-Combine adequacy with provider metrics via a weights JSON file:
+Combine access with provider metrics via a weights JSON file:
 
 ```json
 {"efficiency": 0.3, "effectiveness": 0.2}
 ```
 
-Adequacy weight is implicit: `1.0 - sum(weights)`. Column metrics are normalized to 0-100 using pool min/max, then combined. Pass via `--weights path/to/weights.json`.
+access weight is implicit: `1.0 - sum(weights)`. Column metrics are normalized to 0-100 using pool min/max, then combined. Pass via `--weights path/to/weights.json`.
 
 Uses `sklearn.neighbors.BallTree` for efficient haversine distance queries — O(M log P) instead of O(M × P) cross joins. Per-specialty BallTree + per-county query approach avoids N×C tree rebuilds.
 
@@ -59,7 +59,7 @@ run-optimizer \
   --enable-swaps
 ```
 
-With weighted objectives (70% adequacy, 30% efficiency):
+With weighted objectives (70% access, 30% efficiency):
 
 ```bash
 echo '{"efficiency": 0.3}' > weights.json
@@ -131,7 +131,7 @@ Binary coverage: member has access if **any** provider of matching specialty is 
 ```json
 {"efficiency": 0.3, "effectiveness": 0.2}
 ```
-Values must be in [0, 1], sum must be < 1.0. Adequacy gets the remaining weight (`1.0 - sum`). Column metrics are normalized to 0-100 using pool min/max, then combined as a weighted sum.
+Values must be in [0, 1], sum must be < 1.0. access gets the remaining weight (`1.0 - sum`). Column metrics are normalized to 0-100 using pool min/max, then combined as a weighted sum.
 
 ### Included datasets
 
@@ -153,13 +153,13 @@ Raw pool data is normalized automatically: column renames (`Primary Contract Ent
 | 20+ providers | 479 | 95.33% | 116s (2 rounds) |
 | 5+ providers | 2,122 | — | ~28 min/round |
 
-Scoring: `adequacy_score` call = 0.79s for full 124K provider pool.
+Scoring: `access_score` call = 0.79s for full 124K provider pool.
 
 Score = mean coverage % across all (county, specialty) thresholds.
 
 ## Weighted Objectives
 
-Combine adequacy with provider metrics via a weights JSON file. Create a weights file:
+Combine access with provider metrics via a weights JSON file. Create a weights file:
 
 ```json
 {"efficiency": 0.3, "effectiveness": 0.2}
@@ -170,7 +170,7 @@ Then pass it on the CLI:
 run-optimizer --pool pool.csv --members members.csv --thresholds thresholds.json --weights weights.json
 ```
 
-The objective becomes: `0.5 * adequacy + 0.3 * efficiency + 0.2 * effectiveness` (adequacy gets the remaining weight).
+The objective becomes: `0.5 * access + 0.3 * efficiency + 0.2 * effectiveness` (access gets the remaining weight).
 
 Column metrics are normalized to 0-100 using pool min/max. Available columns depend on your pool data — typically `effectiveness` and `efficiency` (1-5 scale).
 
@@ -191,7 +191,7 @@ network_optimization/
 ├── src/network_optimizer/     # Package
 │   ├── config.py              # OptimizerConfig dataclass + validation
 │   ├── data.py                # Data loading, validation, raw-format normalization
-│   ├── scoring.py             # BallTree coverage queries + adequacy scoring
+│   ├── scoring.py             # BallTree coverage queries + access scoring
 │   ├── ranking.py             # Candidate prefiltering and ranking
 │   ├── search.py              # Two-phase local search
 │   └── main.py                # CLI entry point
