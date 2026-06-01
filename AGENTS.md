@@ -10,6 +10,8 @@
 - **CLI**: `--pool`, `--members`, `--thresholds` required; `--network` optional (starts empty). See README for full option list.
 - **Run with real data**: `run-optimizer --pool <pool_csv> --members <members_csv> --thresholds <thresholds_json>`
 - **With weights**: `echo '{"efficiency": 0.3}' > weights.json && run-optimizer --pool <pool_csv> --members <members_csv> --thresholds <thresholds_json> --weights weights.json`
+- **Parallel scoring**: `run-optimizer --pool <pool_csv> --members <members_csv> --thresholds <thresholds_json> --n-jobs 4`
+- **Entity size filters**: `--min-entity-size 20 --max-entity-size 500` to bound search space
 - **Lint**: `ruff check .` (selects: E F W I N UP B SIM; use `--fix --unsafe-fixes`)
 - **Type check**: `mypy src/network_optimizer` (note: `disallow_untyped_defs = false`)
 
@@ -37,6 +39,9 @@
 - **Two-phase search**: Phase 1 adds entities greedily until convergence. Phase 2 swaps entities at fixed network size. No standalone removals (never improve pure access).
 - **Search modes**: `first_improvement` (default) accepts first improving candidate. `steepest` evaluates all, picks best. First-improvement is faster due to ranked candidate order.
 - **Candidate prefiltering**: `CandidateRanker` uses BallTree on uncovered members to filter out entities that cannot improve coverage. Two checks: specialty gap (entity has a specialty in a sub-100% coverage pair) and geographic reach (entity has a provider within threshold of an uncovered member). Typically reduces candidates by 80-90%. Lossless — never eliminates a candidate that could improve the score.
+- **Parallel scoring**: `CandidateRanker` and `NetworkOptimizer` use `ThreadPoolExecutor` with `--n-jobs` for parallel candidate evaluation.
+- **Network tracking**: Network maintained as a live DataFrame (append on add, filter on remove) instead of reconstructing from entity set. Eliminates `entity_map` pre-computation.
+- **Member filtering**: Members outside the service area defined by thresholds are filtered out before optimization, reducing query scope.
 - **BallTree coverage**: Per-specialty BallTree on provider coords. Per-county threshold via `query_radius`. Avoids O(M × P) cross join. 14x speedup on large networks vs per-county rebuild.
 - **Weighted objectives**: `weighted_objective()` combines access with column metrics. Columns normalized to 0-100 via pool min/max. Configured via `OptimizerConfig.metric_weights` or `--weights` CLI flag.
 - **Python 3.9**: Use `from __future__ import annotations` for `X | None`, `list[X]` syntax.

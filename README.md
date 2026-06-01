@@ -24,6 +24,14 @@ A BallTree-based prefilter eliminates entities that cannot improve coverage befo
 
 Typically reduces candidates by 80-90% (e.g. 13,842 → 1,658). Filter is lossless — never eliminates a candidate that could improve the score.
 
+### Member Filtering
+
+Members outside the service area defined by thresholds are automatically filtered out before optimization, reducing the query scope and improving performance.
+
+### Parallel Scoring
+
+Use `--n-jobs` to parallelize candidate evaluation across multiple threads. Both the candidate ranker and optimizer phases support parallel scoring for faster rounds.
+
 ### Weighted Objectives
 
 Combine access with provider metrics via a weights JSON file:
@@ -91,6 +99,8 @@ run-optimizer \
 | `--weights` | Metric weights JSON, e.g. `{"efficiency": 0.3}` (optional) |
 | `--search-mode` | `first-improvement` (default) or `steepest` |
 | `--min-entity-size` | Minimum providers per entity to include in pool |
+| `--max-entity-size` | Maximum providers per entity to include in pool |
+| `--n-jobs` | Parallel workers for candidate scoring (default: 1, sequential) |
 | `--max-rounds` | Max rounds per phase (default: 100) |
 | `--patience` | No-improvement rounds before stopping (default: 5) |
 | `--enable-swaps` | Enable Phase 2 swap refinement |
@@ -201,7 +211,7 @@ network_optimization/
 │   ├── mi_members_sample.csv  # 10K MI subset
 │   └── thresholds.json        # 100 thresholds
 ├── scripts/
-│   └── generate_data.py       # Synthetic data generator (legacy)
+│   └── demo.py                # Demo script
 └── tests/                     # [TODO] pytest suite
 ```
 
