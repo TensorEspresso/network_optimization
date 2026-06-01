@@ -18,8 +18,8 @@ from .scoring import access_score, compute_coverage, weighted_objective
 
 
 def _score_candidate(
-    entity_map: dict[str, pd.DataFrame],
-    base_entities: frozenset[str],
+    pool: pd.DataFrame,
+    base_network: pd.DataFrame,
     candidate_entity: str,
     remove_entity: str | None,
     members: pd.DataFrame,
@@ -31,12 +31,10 @@ def _score_candidate(
 
     Used as the target function for ThreadPoolExecutor.
     """
-    entities = set(base_entities)
+    network_df = base_network.copy()
     if remove_entity is not None:
-        entities.discard(remove_entity)
-    entities.add(candidate_entity)
-
-    network_df = pd.DataFrame() if not entities else pd.concat([entity_map[e] for e in entities], ignore_index=True)
+        network_df = network_df[network_df["entity"] != remove_entity]
+    network_df = pd.concat([network_df, pool[pool["entity"] == candidate_entity]], ignore_index=True)
 
     score = weighted_objective(members, thresholds, network_df, weights, pool_stats)
     return (candidate_entity, score)
@@ -77,17 +75,11 @@ class NetworkOptimizer:
         all_entities = set(pool["entity"].dropna().str.lower().unique())
         self.outside_entities = all_entities - self.network_entities
 
-        # Pre-compute entity -> provider mapping (keys lowercased to match network_entities)
-        entity_lower = pool["entity"].dropna().str.lower()
-        self.entity_map: dict[str, pd.DataFrame] = {}
-        for entity, group in pool.assign(_el=entity_lower).groupby("_el", sort=False):
-            self.entity_map[entity] = group.drop(columns=["_el"])
-
         # Pre-compute pool stats for weighted metrics
         self.pool_stats = self._build_pool_stats(config.metric_weights if config else {}, pool)
 
         # Build candidate ranker
-        self.ranker = CandidateRanker(members, thresholds, self.entity_map, self.config, self.pool_stats)
+        self.ranker = CandidateRanker(members, thresholds, self.pool, self.config, self.pool_stats)
 
         self.phases: list[dict] = []
 
@@ -103,38 +95,32 @@ class NetworkOptimizer:
                 stats[col] = {"min": pool[col].min(), "max": pool[col].max()}
         return stats
 
-    def _get_network_df(self) -> pd.DataFrame:
-        """Reconstruct network DataFrame from current entity set using entity_map."""
-        entities = sorted(self.network_entities)
-        if not entities:
-            return self.pool.iloc[:0].copy()
-        return pd.concat([self.entity_map[e] for e in entities], ignore_index=True)
-
     def _score(self) -> float:
         """Score current network."""
-        network_df = self._get_network_df()
         return weighted_objective(
-            self.members, self.thresholds, network_df,
+            self.members, self.thresholds, self.network,
             self.config.metric_weights, self.pool_stats,
         )
 
     def _coverage(self) -> list[dict]:
         """Compute coverage results for current network."""
-        return compute_coverage(self.members, self.thresholds, self._get_network_df())
+        return compute_coverage(self.members, self.thresholds, self.network)
 
     def _access(self) -> float:
         """Compute access score for current network."""
-        return access_score(self.members, self.thresholds, self._get_network_df())
+        return access_score(self.members, self.thresholds, self.network)
 
     def _add_entity(self, entity: str) -> None:
         """Add an entity to the network."""
         self.network_entities.add(entity.lower())
         self.outside_entities.discard(entity.lower())
+        self.network = pd.concat([self.network, self.pool[self.pool["entity"] == entity]], ignore_index=True)
 
     def _remove_entity(self, entity: str) -> None:
         """Remove an entity from the network."""
         self.network_entities.discard(entity.lower())
         self.outside_entities.add(entity.lower())
+        self.network = self.network[self.network["entity"] != entity]
 
     def _log(self, message: str) -> None:
         """Log message based on verbosity level."""
@@ -180,8 +166,8 @@ class NetworkOptimizer:
                     futures = [
                         executor.submit(
                             _score_candidate,
-                            self.entity_map,
-                            frozenset(self.network_entities),
+                            self.pool,
+                            self.network,
                             entity,
                             None,
                             self.members,
@@ -309,8 +295,8 @@ class NetworkOptimizer:
                     futures = [
                         executor.submit(
                             _score_candidate,
-                            self.entity_map,
-                            frozenset(self.network_entities),
+                            self.pool,
+                            self.network,
                             out_e,
                             in_e,
                             self.members,
@@ -406,7 +392,7 @@ class NetworkOptimizer:
 
         entities_swapped = self.phase2_swaps()
 
-        final_network = self._get_network_df()
+        final_network = self.network
         final_score = self._score()
         elapsed = time.time() - overall_start
 

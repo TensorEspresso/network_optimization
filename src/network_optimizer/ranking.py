@@ -6,6 +6,7 @@ candidates by weighted contribution (coverage + column metrics).
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
@@ -78,20 +79,20 @@ class CandidateRanker:
         self,
         members: pd.DataFrame,
         thresholds: dict,
-        entity_map: dict[str, pd.DataFrame],
+        pool: pd.DataFrame,
         config: OptimizerConfig,
         pool_stats: dict[str, dict[str, float]],
     ) -> None:
         self.members = members
         self.thresholds = thresholds
-        self.entity_map = entity_map
+        self.pool = pool
         self.config = config
         self.pool_stats = pool_stats
         self.weights = config.metric_weights
         self.entity_specialties: dict[str, set[str]] = {}
 
-        for entity, df in entity_map.items():
-            self.entity_specialties[entity] = set(df["specialty"].unique())
+        for entity, group in pool.groupby("entity"):
+            self.entity_specialties[entity] = set(group["specialty"].unique())
 
     def _coverage_count(
         self,
@@ -171,15 +172,39 @@ class CandidateRanker:
 
         tree = BallTree(uncovered.member_coords, leaf_size=40, metric="haversine")
 
-        scored: list[tuple[str, float]] = []
-        for entity in outside_entities:
-            if not self.entity_specialties.get(entity, set()) & uncovered.uncovered_specialties:
-                continue
+        # Pre-filter: specialty gap check (cheap set intersection)
+        passing = [
+            entity for entity in outside_entities
+            if self.entity_specialties.get(entity, set()) & uncovered.uncovered_specialties
+        ]
 
-            entity_df = self.entity_map[entity]
-            rank_score = self._rank_entity(entity, entity_df, tree, uncovered)
-            if rank_score > 0:
-                scored.append((entity, rank_score))
+        use_parallel = self.config.n_jobs > 1 and len(passing) > self.config.n_jobs
+
+        if use_parallel:
+            with ThreadPoolExecutor(max_workers=self.config.n_jobs) as executor:
+                futures = {
+                    executor.submit(
+                        self._rank_entity,
+                        entity,
+                        self.pool[self.pool["entity"] == entity],
+                        tree,
+                        uncovered,
+                    ): entity
+                    for entity in passing
+                }
+                scored = []
+                for future in futures:
+                    entity = futures[future]
+                    rank_score = future.result()
+                    if rank_score > 0:
+                        scored.append((entity, rank_score))
+        else:
+            scored = []
+            for entity in passing:
+                entity_df = self.pool[self.pool["entity"] == entity]
+                rank_score = self._rank_entity(entity, entity_df, tree, uncovered)
+                if rank_score > 0:
+                    scored.append((entity, rank_score))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         return [e for e, _ in scored]

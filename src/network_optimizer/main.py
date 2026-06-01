@@ -28,6 +28,7 @@ def main() -> None:
     parser.add_argument("--convergence", type=float, default=0.0, help="Convergence threshold (0-1)")
     parser.add_argument("--verbosity", type=int, choices=[0, 1, 2], default=1, help="Verbosity level")
     parser.add_argument("--min-entity-size", type=int, default=None, help="Min providers per entity (filters pool)")
+    parser.add_argument("--max-entity-size", type=int, default=None, help="Max providers per entity (filters pool)")
     parser.add_argument("--n-jobs", type=int, default=1, help="Parallel workers for candidate scoring (1 = sequential)")
     parser.add_argument("--search-mode", choices=["steepest", "first-improvement"], default="first-improvement",
                         help="Search strategy (default: first-improvement)")
@@ -48,14 +49,31 @@ def main() -> None:
         args.pool, args.members, args.thresholds, args.network
     )
 
-    # Filter pool to entities with min N providers
-    if args.min_entity_size is not None:
+   # Filter pool to entities with min N providers
+    if args.min_entity_size is not None and len(pool) > 0:
         entity_sizes = pool.groupby("entity").size()
         qualifying = set(entity_sizes[entity_sizes >= args.min_entity_size].index)
+        # Preserve initial_network entities
+        if len(initial_network) > 0:
+            initial_entities = set(initial_network["entity"].unique())
+            qualifying |= initial_entities
         before = len(pool)
         pool = pool[pool["entity"].isin(qualifying)].reset_index(drop=True)
         initial_network = initial_network[initial_network["entity"].isin(qualifying)].reset_index(drop=True)
         print(f"  Filtered pool: {before} -> {len(pool)} providers ({pool['entity'].nunique()} entities with >= {args.min_entity_size} providers)")
+
+    # Filter pool to entities with max N providers
+    if args.max_entity_size is not None:
+        entity_sizes = pool.groupby("entity").size()
+        qualifying = set(entity_sizes[entity_sizes <= args.max_entity_size].index)
+        # Preserve initial_network entities
+        if len(initial_network) > 0:
+            initial_entities = set(initial_network["entity"].unique())
+            qualifying |= initial_entities
+        before = len(pool)
+        pool = pool[pool["entity"].isin(qualifying)].reset_index(drop=True)
+        initial_network = initial_network[initial_network["entity"].isin(qualifying)].reset_index(drop=True)
+        print(f"  Filtered pool: {before} -> {len(pool)} providers ({pool['entity'].nunique()} entities with <= {args.max_entity_size} providers)")
 
     config = OptimizerConfig(
         max_rounds=args.max_rounds,

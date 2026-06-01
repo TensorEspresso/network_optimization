@@ -278,6 +278,20 @@ def load_all(
 
     initial_network = load_initial_network(network_path, pool) if network_path is not None else pool.iloc[:0].copy()
 
+    # Filter members to service area defined by thresholds
+    service_area = {
+        (state.lower(), county.lower())
+        for state, counties in thresholds.items()
+        for county in counties
+    }
+    before = len(members)
+    mask = pd.Series(False, index=members.index)
+    for state, county in service_area:
+        mask |= (members["state"] == state) & (members["county"] == county)
+    members = members[mask].reset_index(drop=True)
+    if before - len(members) > 0:
+        print(f"  Filtered members: {before} -> {len(members)} (dropped {before - len(members)} outside service area)")
+
     # Cross-validate thresholds against pool/members data
     pool_states = set(pool["state"].unique())
     pool_specialties = set(pool["specialty"].unique())
