@@ -1,7 +1,7 @@
 # Network Optimization: Plan & Status
 
 **Date:** May 27, 2026
-**Repo:** andrewdoto13/network_optimization
+**Repo:** TensorEspresso/network_optimization
 **Status:** Phase 2-3 complete, Phase 4 in progress
 
 ---
